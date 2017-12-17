@@ -1,33 +1,33 @@
 /*
-* Copyright (c) 2014, Stephen Robinson
-* All rights reserved.
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions
-* are met:
-*
-* 1. Redistributions of source code must retain the above copyright
-* notice, this list of conditions and the following disclaimer.
-* 2. Redistributions in binary form must reproduce the above copyright
-* notice, this list of conditions and the following disclaimer in the
-* documentation and/or other materials provided with the distribution.
-* 3. Neither the name of the copyright holder nor the names of its
-* contributors may be used to endorse or promote products derived
-* from this software without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-* ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-* LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-* CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-* POSSIBILITY OF SUCH DAMAGE.
-*
-*/
+ * Copyright (c) 2014, Stephen Robinson
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its
+ * contributors may be used to endorse or promote products derived
+ * from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
 #include <stdint.h>
 #include <string.h>
 #include "mqtt_msg.h"
@@ -229,42 +229,41 @@ uint16_t mqtt_get_id(uint8_t* buffer, uint16_t length)
     if (length < 1)
         return 0;
 
-    switch (mqtt_get_type(buffer))
-    {
+    switch (mqtt_get_type(buffer)) {
         case MQTT_MSG_TYPE_PUBLISH:
+        {
+            int i;
+            int topiclen;
+
+            for (i = 1; i < length; ++i)
             {
-                int i;
-                int topiclen;
-
-                for (i = 1; i < length; ++i)
+                if ((buffer[i] & 0x80) == 0)
                 {
-                    if ((buffer[i] & 0x80) == 0)
-                    {
-                        ++i;
-                        break;
-                    }
+                    ++i;
+                    break;
                 }
+            }
 
+            if (i + 2 >= length)
+                return 0;
+            topiclen = buffer[i++] << 8;
+            topiclen |= buffer[i++];
+
+            if (i + topiclen >= length)
+                return 0;
+            i += topiclen;
+
+            if (mqtt_get_qos(buffer) > 0)
+            {
                 if (i + 2 >= length)
                     return 0;
-                topiclen = buffer[i++] << 8;
-                topiclen |= buffer[i++];
-
-                if (i + topiclen >= length)
-                    return 0;
-                i += topiclen;
-
-                if (mqtt_get_qos(buffer) > 0)
-                {
-                    if (i + 2 >= length)
-                        return 0;
-                    //i += 2;
-                } else {
-                    return 0;
-                }
-
-                return (buffer[i] << 8) | buffer[i + 1];
+                //i += 2;
+            } else {
+                return 0;
             }
+
+            return (buffer[i] << 8) | buffer[i + 1];
+        }
         case MQTT_MSG_TYPE_PUBACK:
         case MQTT_MSG_TYPE_PUBREC:
         case MQTT_MSG_TYPE_PUBREL:
@@ -272,14 +271,14 @@ uint16_t mqtt_get_id(uint8_t* buffer, uint16_t length)
         case MQTT_MSG_TYPE_SUBACK:
         case MQTT_MSG_TYPE_UNSUBACK:
         case MQTT_MSG_TYPE_SUBSCRIBE:
-            {
-                // This requires the remaining length to be encoded in 1 byte,
-                // which it should be.
-                if (length >= 4 && (buffer[1] & 0x80) == 0)
-                    return (buffer[2] << 8) | buffer[3];
-                else
-                    return 0;
-            }
+        {
+            // This requires the remaining length to be encoded in 1 byte,
+            // which it should be.
+            if (length >= 4 && (buffer[1] & 0x80) == 0)
+                return (buffer[2] << 8) | buffer[3];
+            else
+                return 0;
+        }
 
         default:
             return 0;
