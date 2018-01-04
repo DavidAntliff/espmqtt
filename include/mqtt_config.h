@@ -1,6 +1,5 @@
 #ifndef _MQTT_CONFIG_H_
 #define _MQTT_CONFIG_H_
-#include "sdkconfig.h"
 #include <stdio.h>
 
 #define CONFIG_MQTT_PROTOCOL_311 1
